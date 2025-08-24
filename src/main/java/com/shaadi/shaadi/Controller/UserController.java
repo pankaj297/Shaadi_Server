@@ -54,12 +54,17 @@ public class UserController {
             User savedUser = userService.saveUser(user);
 
             // Build URLs for frontend
+            String backendBaseUrl = System.getenv("BACKEND_URL");
+            if (backendBaseUrl == null || backendBaseUrl.isEmpty()) {
+                backendBaseUrl = "http://localhost:8080"; // fallback for local dev
+            }
+
             String profileUrl = (savedUser.getProfilePhotoPath() != null)
-                    ? "http://localhost:8080/uploads/" + savedUser.getProfilePhotoPath()
+                    ? backendBaseUrl + "/uploads/" + savedUser.getProfilePhotoPath()
                     : null;
 
             String aadhaarUrl = (savedUser.getAadhaarPath() != null)
-                    ? "http://localhost:8080/uploads/" + savedUser.getAadhaarPath()
+                    ? backendBaseUrl + "/uploads/" + savedUser.getAadhaarPath()
                     : null;
 
             return ResponseEntity.ok(Map.of(

@@ -13,7 +13,7 @@ public class UploadHelper {
 
     // Save files in external uploads folder
     public final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads";
-
+    
     public boolean uploadFile(MultipartFile file, String fileName) {
         try {
             fileName = Paths.get(fileName).getFileName().toString();
