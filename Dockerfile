@@ -1,21 +1,23 @@
-# Step 1: Use Java 17 image
-FROM eclipse-temurin:17-jdk-alpine
-
-# Step 2: Set working directory
+# Stage 1: Build with Maven
+FROM maven:3.9.3-eclipse-temurin-17-alpine AS build
 WORKDIR /app
 
-# Step 3: Copy pom.xml and source code
+# Copy pom.xml and source code
 COPY pom.xml .
 COPY src ./src
 
-# Step 4: Build project using Maven (without wrapper)
+# Build the project
 RUN mvn clean package -DskipTests
 
-# Step 5: Copy generated jar
-COPY target/*.jar app.jar
+# Stage 2: Run with JDK only
+FROM eclipse-temurin:17-jdk-alpine
+WORKDIR /app
 
-# Step 6: Expose port
+# Copy jar from build stage
+COPY --from=build /app/target/*.jar app.jar
+
+# Expose port
 EXPOSE 8080
 
-# Step 7: Run the application
+# Run the application
 ENTRYPOINT ["java","-jar","app.jar"]

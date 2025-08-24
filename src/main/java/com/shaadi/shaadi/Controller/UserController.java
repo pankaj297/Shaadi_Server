@@ -32,7 +32,7 @@ public class UserController {
         try {
             long uniqueNumber = System.currentTimeMillis();
 
-            // Handle Profile Photo
+            // Handle Profile image
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
                 if (!profilePhoto.getContentType().startsWith("image/")) {
                     return ResponseEntity.badRequest().body("🚫 Only image files allowed for Profile Photo");
