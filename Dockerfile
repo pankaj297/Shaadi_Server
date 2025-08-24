@@ -8,8 +8,8 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 
-# Step 4: Build project using Maven
-RUN ./mvnw clean package -DskipTests
+# Step 4: Build project using Maven (without wrapper)
+RUN mvn clean package -DskipTests
 
 # Step 5: Copy generated jar
 COPY target/*.jar app.jar
