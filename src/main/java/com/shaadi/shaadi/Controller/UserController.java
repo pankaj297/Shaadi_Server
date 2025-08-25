@@ -1,8 +1,8 @@
 package com.shaadi.shaadi.Controller;
 
 import java.util.Optional;
-import com.shaadi.shaadi.Helper.UploadHelper;
 import com.shaadi.shaadi.Model.User;
+import com.shaadi.shaadi.Services.CloudinaryService;
 import com.shaadi.shaadi.Services.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,56 +21,36 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-    private UploadHelper uploadHelper;
+    private CloudinaryService cloudinaryService;
 
-    // 1️⃣ Register user
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(
             @ModelAttribute User user,
             @RequestParam(value = "profilePhoto", required = false) MultipartFile profilePhoto,
             @RequestParam(value = "aadhaar", required = false) MultipartFile aadhaar) {
         try {
-            long uniqueNumber = System.currentTimeMillis();
-
-            // Handle Profile image
+            // Profile Photo
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
                 if (!profilePhoto.getContentType().startsWith("image/")) {
-                    return ResponseEntity.badRequest().body("🚫 Only image files allowed for Profile Photo");
+                    return ResponseEntity.badRequest().body("🚫 Only images allowed for Profile Photo");
                 }
-                String extension = getExtension(profilePhoto.getOriginalFilename());
-                String profileFileName = uniqueNumber + "_profile" + extension;
-                uploadHelper.uploadFile(profilePhoto, profileFileName);
-                user.setProfilePhotoPath(profileFileName);
+                String profileUrl = cloudinaryService.uploadFile(profilePhoto);
+                user.setProfilePhotoPath(profileUrl);
             }
 
-            // Handle Aadhaar
+            // Aadhaar
             if (aadhaar != null && !aadhaar.isEmpty()) {
-                String extension = getExtension(aadhaar.getOriginalFilename());
-                String aadhaarFileName = uniqueNumber + "_aadhaar" + extension;
-                uploadHelper.uploadFile(aadhaar, aadhaarFileName);
-                user.setAadhaarPath(aadhaarFileName);
+                String aadhaarUrl = cloudinaryService.uploadFile(aadhaar);
+                user.setAadhaarPath(aadhaarUrl);
             }
 
             User savedUser = userService.saveUser(user);
 
-            // Build URLs for frontend
-            String backendBaseUrl = System.getenv("BACKEND_URL");
-            if (backendBaseUrl == null || backendBaseUrl.isEmpty()) {
-                backendBaseUrl = "http://localhost:8080"; // fallback for local dev
-            }
-
-            String profileUrl = (savedUser.getProfilePhotoPath() != null)
-                    ? backendBaseUrl + "/uploads/" + savedUser.getProfilePhotoPath()
-                    : null;
-
-            String aadhaarUrl = (savedUser.getAadhaarPath() != null)
-                    ? backendBaseUrl + "/uploads/" + savedUser.getAadhaarPath()
-                    : null;
-
+            // Return Cloudinary URLs
             return ResponseEntity.ok(Map.of(
                     "user", savedUser,
-                    "profilePhotoUrl", profileUrl,
-                    "aadhaarUrl", aadhaarUrl));
+                    "profilePhotoUrl", savedUser.getProfilePhotoPath(),
+                    "aadhaarUrl", savedUser.getAadhaarPath()));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -116,7 +96,7 @@ public class UserController {
             User existingUser = userService.getUserById(id)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Update simple fields
+            // Update fields
             existingUser.setName(user.getName());
             existingUser.setGender(user.getGender());
             existingUser.setDob(user.getDob());
@@ -137,33 +117,28 @@ public class UserController {
             existingUser.setAddress(user.getAddress());
             existingUser.setMobile(user.getMobile());
 
-            // Update files
+            // Profile Photo upload
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
-                String profileFileName = System.currentTimeMillis() + "_profile_" + profilePhoto.getOriginalFilename();
-                uploadHelper.uploadFile(profilePhoto, profileFileName);
-                existingUser.setProfilePhotoPath(profileFileName);
+                if (!profilePhoto.getContentType().startsWith("image/")) {
+                    return ResponseEntity.badRequest().body("🚫 Only image files allowed for Profile Photo");
+                }
+                String profileUrl = cloudinaryService.uploadFile(profilePhoto);
+                existingUser.setProfilePhotoPath(profileUrl);
             }
+
+            // Aadhaar upload
             if (aadhaar != null && !aadhaar.isEmpty()) {
-                String aadhaarFileName = System.currentTimeMillis() + "_aadhaar_" + aadhaar.getOriginalFilename();
-                uploadHelper.uploadFile(aadhaar, aadhaarFileName);
-                existingUser.setAadhaarPath(aadhaarFileName);
+                String aadhaarUrl = cloudinaryService.uploadFile(aadhaar);
+                existingUser.setAadhaarPath(aadhaarUrl);
             }
 
             User updatedUser = userService.saveUser(existingUser);
 
-            // Build URLs for frontend
-            String profileUrl = (updatedUser.getProfilePhotoPath() != null)
-                    ? "http://localhost:8080/uploads/" + updatedUser.getProfilePhotoPath()
-                    : null;
-
-            String aadhaarUrl = (updatedUser.getAadhaarPath() != null)
-                    ? "http://localhost:8080/uploads/" + updatedUser.getAadhaarPath()
-                    : null;
-
+            // Return Cloudinary URLs directly
             return ResponseEntity.ok(Map.of(
                     "user", updatedUser,
-                    "profilePhotoUrl", profileUrl,
-                    "aadhaarUrl", aadhaarUrl));
+                    "profilePhotoUrl", updatedUser.getProfilePhotoPath(),
+                    "aadhaarUrl", updatedUser.getAadhaarPath()));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -183,11 +158,4 @@ public class UserController {
         }
     }
 
-    // 🔹 Helper method
-    private String getExtension(String fileName) {
-        if (fileName != null && fileName.contains(".")) {
-            return fileName.substring(fileName.lastIndexOf("."));
-        }
-        return "";
-    }
 }

@@ -1,0 +1,19 @@
+{
+  "properties": [
+    {
+      "name": "CLOUDINARY_CLOUD_NAME",
+      "type": "java.lang.String",
+      "description": "Cloudinary cloud name"
+    },
+    {
+      "name": "CLOUDINARY_API_KEY",
+      "type": "java.lang.String",
+      "description": "Cloudinary API key"
+    },
+    {
+      "name": "CLOUDINARY_API_SECRET",
+      "type": "java.lang.String",
+      "description": "Cloudinary API secret"
+    }
+  ]
+}
