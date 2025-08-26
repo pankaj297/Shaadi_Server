@@ -1,22 +1,21 @@
 package com.shaadi.shaadi.Controller;
 
+import java.util.Optional;
 import com.shaadi.shaadi.Model.User;
 import com.shaadi.shaadi.Services.CloudinaryService;
 import com.shaadi.shaadi.Services.UserService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = { "http://localhost:5173", "https://banjaramelava.netlify.app",
-        "https://your-frontend.onrender.com" })
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -34,7 +33,7 @@ public class UserController {
             // Profile Photo
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
                 if (!profilePhoto.getContentType().startsWith("image/")) {
-                    return ResponseEntity.badRequest().body("Only images allowed for Profile Photo");
+                    return ResponseEntity.badRequest().body("🚫 Only images allowed for Profile Photo");
                 }
                 String profileUrl = cloudinaryService.uploadFile(profilePhoto);
                 user.setProfilePhotoPath(profileUrl);
@@ -47,64 +46,48 @@ public class UserController {
             }
 
             User savedUser = userService.saveUser(user);
-            return ResponseEntity.ok(savedUser);
+
+            // Return Cloudinary URLs
+            return ResponseEntity.ok(Map.of(
+                    "id", savedUser.getId(),
+                    "user", savedUser,
+                    "profilePhotoUrl", savedUser.getProfilePhotoPath(),
+                    "aadhaarUrl", savedUser.getAadhaarPath()));
 
         } catch (Exception e) {
             e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error registering user: " + e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body("Error registering user: " + e.getMessage());
         }
     }
 
+    // 2️⃣ Get all users
     @GetMapping("/")
-    public ResponseEntity<?> getAllUsers() {
-        try {
-            List<User> users = userService.getAllUsers();
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error fetching users: " + e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
 
+    // 3️⃣ Get user by ID
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id) {
-        try {
-            Optional<User> optionalUser = userService.getUserById(id);
-            if (optionalUser.isPresent()) {
-                return ResponseEntity.ok(optionalUser.get());
-            } else {
-                Map<String, String> errorResponse = new HashMap<>();
-                errorResponse.put("error", "User not found with id: " + id);
-                return ResponseEntity.status(404).body(errorResponse);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error fetching user: " + e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
+        Optional<User> optionalUser = userService.getUserById(id);
+        return optionalUser.<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(404).body("User not found"));
     }
 
+    // 4️⃣ Admin Login
     @PostMapping("/abc/login")
-    public ResponseEntity<?> loginAdmin(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<String> loginAdmin(@RequestBody Map<String, String> payload) {
         String username = payload.get("username");
         String password = payload.get("password");
-
         if ("admin".equals(username) && "admin123".equals(password)) {
-            Map<String, String> successResponse = new HashMap<>();
-            successResponse.put("message", "Login successful");
-            return ResponseEntity.ok(successResponse);
+            return ResponseEntity.ok("Login successful");
         } else {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Invalid credentials");
-            return ResponseEntity.status(401).body(errorResponse);
+            return ResponseEntity.status(401).body("Invalid credentials");
         }
     }
 
+    // 5️⃣ Update user
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateUser(
             @PathVariable Long id,
@@ -139,7 +122,7 @@ public class UserController {
             // Profile Photo upload
             if (profilePhoto != null && !profilePhoto.isEmpty()) {
                 if (!profilePhoto.getContentType().startsWith("image/")) {
-                    return ResponseEntity.badRequest().body("Only image files allowed for Profile Photo");
+                    return ResponseEntity.badRequest().body("🚫 Only image files allowed for Profile Photo");
                 }
                 String profileUrl = cloudinaryService.uploadFile(profilePhoto);
                 existingUser.setProfilePhotoPath(profileUrl);
@@ -152,28 +135,28 @@ public class UserController {
             }
 
             User updatedUser = userService.saveUser(existingUser);
-            return ResponseEntity.ok(updatedUser);
+
+            // Return Cloudinary URLs directly
+            return ResponseEntity.ok(Map.of(
+                    "user", updatedUser,
+                    "profilePhotoUrl", updatedUser.getProfilePhotoPath(),
+                    "aadhaarUrl", updatedUser.getAadhaarPath()));
 
         } catch (Exception e) {
             e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error updating user: " + e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body("Error updating user: " + e.getMessage());
         }
     }
 
+    // 6️⃣ Delete user
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             userService.deleteUser(id);
-            Map<String, String> successResponse = new HashMap<>();
-            successResponse.put("message", "User deleted successfully!");
-            return ResponseEntity.ok(successResponse);
+            return ResponseEntity.ok("User deleted successfully!");
         } catch (Exception e) {
             e.printStackTrace();
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Error deleting user: " + e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
+            return ResponseEntity.status(500).body("Error deleting user: " + e.getMessage());
         }
     }
 }
