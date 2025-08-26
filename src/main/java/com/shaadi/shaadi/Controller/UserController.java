@@ -50,6 +50,7 @@ public class UserController {
 
             // Return Cloudinary URLs
             return ResponseEntity.ok(Map.of(
+                    "id", savedUser.getId(),
                     "user", savedUser,
                     "profilePhotoUrl", savedUser.getProfilePhotoPath(),
                     "aadhaarUrl", savedUser.getAadhaarPath()));
@@ -159,5 +160,4 @@ public class UserController {
             return ResponseEntity.status(500).body("Error deleting user: " + e.getMessage());
         }
     }
-
 }

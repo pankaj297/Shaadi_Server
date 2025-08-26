@@ -15,10 +15,22 @@ public class CloudinaryService {
     @Autowired
     private Cloudinary cloudinary;
 
-    public String uploadFile(MultipartFile file) throws IOException {
-        Map<String, Object> uploadResult = cloudinary.uploader().upload(
-                file.getBytes(),
-                ObjectUtils.asMap("resource_type", "auto"));
-        return (String) uploadResult.get("secure_url"); // direct HTTPS URL
+    public String uploadFile(MultipartFile file) {
+        try {
+            if (file == null || file.isEmpty()) {
+                return null;
+            }
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "shaadi-profiles",
+                            "use_filename", true,
+                            "unique_filename", true));
+
+            return uploadResult.get("secure_url").toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload file to Cloudinary", e);
+        }
     }
 }
